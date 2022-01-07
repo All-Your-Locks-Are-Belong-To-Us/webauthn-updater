@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="{{ url_for('static', filename='webauthn.js') }}"></script>
+</head>
+<body>
+    <button onclick="registerCredential()">Register</button>
+    <button onclick="authenticateCredential()">Authenticate</button>
+    <button onclick="readLargeBlob()">Read Large Blob Data</button>
+    <div id="data"></div>
+</body>
+</html>
