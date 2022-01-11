@@ -1,11 +1,17 @@
-from flask import Flask, render_template, request
 
+from flask import Flask, render_template, request
+from flask_oidc import OpenIDConnect
 from webauthn import generate_registration_options, generate_authentication_options, options_to_json, base64url_to_bytes
 from webauthn.helpers.structs import\
     AuthenticationExtensionsLargeBlobInputs, \
     LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement, PublicKeyCredentialDescriptor
 
 app = Flask(__name__)
+app.config["OIDC_CLIENT_SECRETS"] = "client_secrets.json"
+app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
+app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
+oidc = OpenIDConnect(app)
+
 credentialID = b"1234567890"
 
 
@@ -14,11 +20,13 @@ def largeBlobMessage():
 
 
 @app.route('/')
+@oidc.require_login
 def index():
-    return render_template('index.html')
+    return render_template('index.html', username=oidc.user_getfield("preferred_username"))
 
 
 @app.route('/register')
+@oidc.require_login
 def register():
     registration_options = generate_registration_options(
         rp_id="localhost",
@@ -35,6 +43,7 @@ def register():
     )
 
     return options_to_json(registration_options)
+
 
 
 @app.route('/register-response', methods=['POST'])
@@ -68,6 +77,12 @@ def readBlob():
     )
 
     return options_to_json(authentication_options)
+
+
+@app.route('/challenge')
+@oidc.require_login
+def challenge():
+    return {}
 
 
 if __name__ == '__main__':

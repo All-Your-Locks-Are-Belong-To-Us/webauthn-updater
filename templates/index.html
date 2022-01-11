@@ -6,6 +6,8 @@
     <script src="{{ url_for('static', filename='webauthn.js') }}"></script>
 </head>
 <body>
+<h1>WebAuthn Demo</h1>
+<h2>Hello {{ username }}</h2>
     <button onclick="registerCredential()">Register</button>
     <button onclick="authenticateCredential()">Authenticate</button>
     <button onclick="readLargeBlob()">Read Large Blob Data</button>
