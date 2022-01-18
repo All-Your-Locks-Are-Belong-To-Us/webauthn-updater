@@ -1,45 +1,76 @@
-let credentialId = null;
-
-function registerCredential() {
+function registerWithSelectedAuthenticator() {
+    console.log('REGISTERING CREDENTIAL')
     fetch('/register')
         .then(response => response.json())
         .then((registerParams) => {
-            console.log(registerParams);
-            return navigator.credentials.create({
-                'publicKey': prepareMessageParams(registerParams)
+            return createExtended({
+                'publicKey': registerParams
             })
         })
         .then((newCredentialInfo) => {
             console.log('SUCCESS', newCredentialInfo);
-            credentialId = newCredentialInfo.rawId;
             return fetch('/register-response', {
                 method: 'POST',
-                body: JSON.stringify({
-                    test: newCredentialInfo.id
-                })
+                body: JSON.stringify(newCredentialInfo)
             })
         })
-        .then(response =>console.log(response))
-        .catch((error) => {
-            console.log('FAIL', error)
-        })
+        .then(console.log)
+        .catch(requestFailure)
 }
 
-function prepareMessageParams(messageParams) {
-    messageParams.challenge = base64Decode(messageParams.challenge);
-    if (messageParams.user !== undefined) {
-        messageParams.user.id = base64Decode(messageParams.user.id);
-    }
-    if (messageParams.allowCredentials !== undefined) {
-        for (let i = 0; i < messageParams.allowCredentials.length; i++) {
-            messageParams.allowCredentials[i].id = base64Decode(messageParams.allowCredentials[i].id);
-        }
-    }
-    if (messageParams.extensions.largeBlob.write !== undefined) {
-        messageParams.extensions.largeBlob.write = base64Decode(messageParams.extensions.largeBlob.write);
-    }
-    return messageParams;
+function identifyCredential() {
+    console.log('IDENTIFYING CREDENTIAL')
+    fetch('/identify-credential')
+        .then(response => response.json())
+        .then((authenticateParams) => {
+            console.log(authenticateParams);
+            return getExtended({ 'publicKey': authenticateParams })
+        })
+        .then((getAssertionResponse) => {
+            console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
+            return fetch('/authentication-response', {
+                method: 'POST',
+                body: JSON.stringify(getAssertionResponse)
+            })
+        })
+        .then(response => response.text())
+        .then(credential_id => {
+            document.getElementById('identified_credential').innerText = credential_id;
+        })
+        .catch(requestFailure)
 }
+
+function writeLargeBlob() {
+    console.log('WRITING LARGE BLOB')
+    fetch('/write-blob')
+        .then(response => response.json())
+        .then((authenticateParams) => {
+            console.log(authenticateParams);
+            return getExtended({ 'publicKey': authenticateParams })
+        })
+        .then((getAssertionResponse) => {
+            console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
+        })
+        .catch(requestFailure)
+}
+
+function readLargeBlob() {
+    console.log('READING LARGE BLOB')
+    fetch('/read-blob')
+        .then(response => response.json())
+        .then((authenticateParams) => {
+            console.log(authenticateParams);
+            return getExtended({ 'publicKey': authenticateParams })
+        })
+        .then((getAssertionResponse) => {
+            console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
+            document.getElementById('largeBlobData').innerText =
+                base64DecodeToString(getAssertionResponse.clientExtensionResults.largeBlob.blob);
+        })
+        .catch(requestFailure)
+}
+
+///// HELPERS
 
 function base64Decode(base64String) {
     return Uint8Array.from(
@@ -48,37 +79,11 @@ function base64Decode(base64String) {
     )
 }
 
-function authenticateCredential() {
-    fetch('/write-blob')
-        .then(response => response.json())
-        .then((authenticateParams) => {
-            console.log(authenticateParams);
-            return navigator.credentials.get({ 'publicKey': prepareMessageParams(authenticateParams) })
-        })
-        .then((getAssertionResponse) => {
-          console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
-        })
-        .catch((error) => {
-          alert('Open your browser console!')
-          console.log('FAIL', error)
-        })
+function base64DecodeToString(base64String) {
+    return new TextDecoder().decode(base64Decode(base64String));
 }
 
-function readLargeBlob() {
-    fetch('/read-blob')
-        .then(response => response.json())
-        .then((authenticateParams) => {
-            console.log(authenticateParams);
-            return navigator.credentials.get({ 'publicKey': prepareMessageParams(authenticateParams) })
-        })
-        .then((getAssertionResponse) => {
-            console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
-            console.log(
-                new TextDecoder().decode(getAssertionResponse.getClientExtensionResults().largeBlob.blob)
-            )
-        })
-        .catch((error) => {
-          alert('Open your browser console!')
-          console.log('FAIL', error)
-        })
+function requestFailure(error) {
+    alert('Operation failed, see browser console!')
+    console.log('FAIL', error)
 }
