@@ -3,12 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    {#    Enable serialization of WebAuthn objects - might be native soon see https://github.com/w3c/webauthn/issues/1683 #}
+    <script src="{{ url_for('static', filename='webauthn-json.browser-global.extended.js') }}"></script>
     <script src="{{ url_for('static', filename='webauthn.js') }}"></script>
 </head>
 <body>
-    <button onclick="registerCredential()">Register</button>
-    <button onclick="authenticateCredential()">Authenticate</button>
-    <button onclick="readLargeBlob()">Read Large Blob Data</button>
-    <div id="data"></div>
+    <h1>WebAuthn Demo</h1>
+    <h2>Hello {{ username }} <button onclick="location.href='/logout'">Logout</button></h2>
+    <p>
+        Register with selected authenticator
+        <input type="button" value="Register" onclick="registerWithSelectedAuthenticator()">
+    </p>
+    <p>
+        <button onclick="identifyCredential()">Identify credential</button>
+        Identified Credential: <span id="identified_credential">None</span>
+    </p>
+    <p>
+
+        <button onclick="writeLargeBlob()">Write access rights to largeBlob</button>
+        <button onclick="readLargeBlob()">Read Large Blob Data</button>
+    </p>
+    <p>
+        Large Blob Data: <span id="largeBlobData">Unknown</span>
+    </p>
 </body>
 </html>

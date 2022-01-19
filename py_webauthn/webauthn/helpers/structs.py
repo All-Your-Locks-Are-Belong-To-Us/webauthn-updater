@@ -270,13 +270,14 @@ class LargeBlobSupport(str, Enum):
 
 @define
 class AuthenticationExtensionsLargeBlobInputs:
-    support: LargeBlobSupport
-    read: bool
+    support: Optional[LargeBlobSupport] = None
+    read: Optional[bool] = None
+    write: Optional[bytes] = None
 
 
 @define
 class AuthenticationExtensionClientInputs:
-    largeBlob: Optional[AuthenticationExtensionsLargeBlobInputs] = None
+    large_blob: Optional[AuthenticationExtensionsLargeBlobInputs] = None
 
 
 @define
@@ -332,7 +333,7 @@ class PublicKeyCredentialCreationOptions:
     exclude_credentials: Optional[List[PublicKeyCredentialDescriptor]] = None
     authenticator_selection: Optional[AuthenticatorSelectionCriteria] = None
     attestation: AttestationConveyancePreference = AttestationConveyancePreference.NONE
-    extensions: AuthenticationExtensionClientInputs = None
+    extensions: Optional[AuthenticationExtensionClientInputs] = None
 
 
 @define
@@ -508,6 +509,7 @@ class PublicKeyCredentialRequestOptions:
     user_verification: Optional[
         UserVerificationRequirement
     ] = UserVerificationRequirement.PREFERRED
+    extensions: Optional[AuthenticationExtensionClientInputs] = None
 
 
 @define
