@@ -19,6 +19,9 @@ app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 oidc = OpenIDConnect(app)
 app.users = []
 
+HOST_NAME = "wau.felixgohla.de"
+HOST_URL = f"https://{HOST_NAME}"
+
 
 @dataclasses.dataclass
 class Credential:
@@ -89,7 +92,7 @@ def register():
     user = find_or_create_user(oidc.user_getfield('preferred_username'))
 
     registration_options = generate_registration_options(
-        rp_id="localhost",
+        rp_id=HOST_NAME,
         rp_name="Webauthn Updater.",
         user_id=user.user_id,
         user_name=user.user_name,
@@ -114,8 +117,8 @@ def register_response():
     verified_registration = verify_registration_response(
         credential=credential,
         expected_challenge=user.last_challenge,
-        expected_rp_id='localhost',
-        expected_origin='https://localhost:5000'
+        expected_rp_id=HOST_NAME,
+        expected_origin=HOST_URL
     )
 
     user.find_or_create_credential(
@@ -134,7 +137,7 @@ def identify_credential():
         return 'User has not registered a credential', 400
 
     authentication_options = generate_authentication_options(
-        rp_id='localhost',
+        rp_id=HOST_NAME
     )
     user.last_challenge = authentication_options.challenge
 
@@ -154,8 +157,8 @@ def authentication_response():
     verified_authentication = verify_authentication_response(
         credential=credential,
         expected_challenge=user.last_challenge,
-        expected_rp_id='localhost',
-        expected_origin='https://localhost:5000',
+        expected_rp_id=HOST_NAME,
+        expected_origin=HOST_URL,
         credential_public_key=stored_credential.public_key,
         credential_current_sign_count=0
     )
@@ -174,7 +177,7 @@ def write_blob():
         return 'No credential for user is selected', 400
 
     authentication_options = generate_authentication_options(
-        rp_id='localhost',
+        rp_id=HOST_NAME,
         allow_credentials=[PublicKeyCredentialDescriptor(id=user.selected_credential.id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             write=f'{b64encode(user.selected_credential.id).decode("UTF-8")} can open {str(random.randint(0, 100))}% of our doors :)'.encode('UTF-8')
@@ -194,7 +197,7 @@ def read_blob():
         return 'No credential for user is selected', 400
 
     authentication_options = generate_authentication_options(
-        rp_id='localhost',
+        rp_id=HOST_NAME,
         allow_credentials=[PublicKeyCredentialDescriptor(id=user.selected_credential.id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             read=True
@@ -205,4 +208,4 @@ def read_blob():
 
 
 if __name__ == '__main__':
-    app.run(ssl_context=("cert.pem", "key.pem"), debug=True)
+    app.run(port=8002)
