@@ -12,12 +12,13 @@ The remaining dependencies can be installed using `pipenv install`.
 
 For the app to work properly, some environment variables need to be set:
 
-| Name | Local value | Deployment Value |
-|---|---|---|
-|WAU_HOST_NAME|`localhost`|`wau.felixgohla.de`|
-|WAU_KEYCLOAK_HOST_NAME|`kc.felixgohla.de`|`kc.felixgohla.de`|
-|WAU_KEYCLOAK_CLIENT_ID|`webauthn-updater`|`deployed-webauthn-updater`|
-|WAU_KEYCLOAK_CLIENT_SECRET|*retrieve from Keycloak*|*retrieve from Keycloak*|
+| Name | Default value | Local value | Deployment Value |
+|---|---|---|---|
+|WAU_HOST_NAME|*unset*|`localhost:5001`|`wau.felixgohla.de`|
+|WAU_SERVER_PORT|8002|8002|5001|
+|WAU_KEYCLOAK_HOST_NAME|*unset*|`kc.felixgohla.de`|`kc.felixgohla.de`|
+|WAU_KEYCLOAK_CLIENT_ID|*unset*|`webauthn-updater`|`deployed-webauthn-updater`|
+|WAU_KEYCLOAK_CLIENT_SECRET|*unset*|*retrieve from Keycloak*|*retrieve from Keycloak*|
 
 Generate the OIDC config file using the environment variables by running `envsubst < client_secrets.tmpl.json > client_secrets.json`
 

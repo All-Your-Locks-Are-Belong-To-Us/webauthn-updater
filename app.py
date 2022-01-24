@@ -24,6 +24,7 @@ app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
 app.users = []
 
+
 @dataclasses.dataclass
 class Credential:
     id: bytes = b''
@@ -209,4 +210,4 @@ def read_blob():
 
 
 if __name__ == '__main__':
-    app.run(port=8002)
+    app.run(port=os.getenv("WAU_SERVER_PORT", 8002), host="localhost")
