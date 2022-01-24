@@ -7,6 +7,8 @@ name = "pypi"
 flask = "*"
 pyopenssl = "*"
 Flask-OIDC = "*"
+webauthn = {path = "./py_webauthn"}
+python-keycloak = "*"
 
 [dev-packages]
 
