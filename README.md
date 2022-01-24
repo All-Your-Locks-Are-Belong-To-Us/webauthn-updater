@@ -6,9 +6,7 @@ This project provides a demonstration of writing data to a FIDO authenticator us
 
 This project assumes Python 3.9. Make sure to have Pip and Pipenv installed.
 
-As the py_webauthn python module has been extended to support the largeBlob extension, it needs to be installed locally. Navigate to the `py_webauthn` directory and run `python setup.py install` to do so.
-
-The remaining dependencies can be installed using `pipenv install`.
+The dependencies of the app can be installed using `pipenv install`. (Note: the `webauthn` packages needed to be extended to support the largeBlob extension. Therefore, the package is installed automatically from the local `py_webauthn` directory).
 
 For the app to work properly, some environment variables need to be set:
 
