@@ -1,3 +1,4 @@
+import os
 import dataclasses
 import random
 from typing import List
@@ -19,7 +20,7 @@ app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 oidc = OpenIDConnect(app)
 app.users = []
 
-HOST_NAME = "wau.felixgohla.de"
+HOST_NAME = os.environ["WAU_HOST_NAME"]
 HOST_URL = f"https://{HOST_NAME}"
 
 
