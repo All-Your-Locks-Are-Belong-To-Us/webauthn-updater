@@ -21,7 +21,24 @@ For the app to work properly, some environment variables need to be set:
 
 Generate the OIDC config file using the environment variables by running `envsubst < client_secrets.tmpl.json > client_secrets.json`
 
+### Running in current shell session
+
 Start the app via `pipenv run python app.py`
+
+### Running as a system service
+
+Alternatively, if you want to run the app as a system service, first copy `webauthn-updater.service` to the `/etc/systemd/system` directory.
+
+Enable the service by running `systemctl enable webauthn-updater.service`.
+
+As the app requires an environment variable to be set, run `systemctl edit webauthn-updater.service` and enter the following to the resulting text input prompt:
+
+```shell
+[Service]
+Environment="WAU_HOST_NAME=<your hostname value here>"
+```
+
+Finally, start the service with `systemctl start webauthn-updater.service`.
 
 ## Acknowledgements
 
