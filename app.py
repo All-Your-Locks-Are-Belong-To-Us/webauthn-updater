@@ -13,16 +13,16 @@ from webauthn.helpers.structs import\
     LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement, PublicKeyCredentialDescriptor, \
     RegistrationCredential, AuthenticationCredential
 
+HOST_NAME = os.environ["WAU_HOST_NAME"]
+HOST_URL = f"https://{HOST_NAME}"
+
 app = Flask(__name__)
 app.config["OIDC_CLIENT_SECRETS"] = "client_secrets.json"
 app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
+app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
 app.users = []
-
-HOST_NAME = os.environ["WAU_HOST_NAME"]
-HOST_URL = f"https://{HOST_NAME}"
-
 
 @dataclasses.dataclass
 class Credential:
