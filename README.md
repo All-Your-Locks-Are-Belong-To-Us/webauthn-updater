@@ -14,8 +14,8 @@ For the app to work properly, some environment variables need to be set:
 
 | Name | Default value | Local value | Deployment Value |
 |---|---|---|---|
-|WAU_HOST_NAME|*unset*|`localhost:5001`|`wau.felixgohla.de`|
-|WAU_SERVER_PORT|8002|8002|5001|
+|WAU_HOST_URL|*unset*|`http://localhost:5000`|`https://wau.felixgohla.de`|
+|WAU_SERVER_PORT|8002|5000|*not required*|
 |WAU_KEYCLOAK_HOST_NAME|*unset*|`kc.felixgohla.de`|`kc.felixgohla.de`|
 |WAU_KEYCLOAK_CLIENT_ID|*unset*|`webauthn-updater`|`deployed-webauthn-updater`|
 |WAU_KEYCLOAK_CLIENT_SECRET|*unset*|*retrieve from Keycloak*|*retrieve from Keycloak*|
@@ -36,7 +36,7 @@ As the app requires an environment variable to be set, run `systemctl edit webau
 
 ```shell
 [Service]
-Environment="WAU_HOST_NAME=<your hostname value here>"
+Environment="WAU_HOST_URL=<your url value here>"
 ```
 
 Finally, start the service with `systemctl start webauthn-updater.service`.

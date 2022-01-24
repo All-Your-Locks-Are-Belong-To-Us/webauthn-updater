@@ -3,6 +3,7 @@ import dataclasses
 import random
 from typing import List
 from base64 import b64encode
+import re
 
 from flask import Flask, render_template, request, redirect
 from flask_oidc import OpenIDConnect
@@ -13,8 +14,8 @@ from webauthn.helpers.structs import\
     LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement, PublicKeyCredentialDescriptor, \
     RegistrationCredential, AuthenticationCredential
 
-HOST_NAME = os.environ["WAU_HOST_NAME"]
-HOST_URL = f"https://{HOST_NAME}"
+HOST_URL = os.environ["WAU_HOST_URL"]
+RP_ID = re.search(r'https?://([^:]+)', HOST_URL).group(1)
 
 app = Flask(__name__)
 app.config["OIDC_CLIENT_SECRETS"] = "client_secrets.json"
@@ -94,7 +95,7 @@ def register():
     user = find_or_create_user(oidc.user_getfield('preferred_username'))
 
     registration_options = generate_registration_options(
-        rp_id=HOST_NAME,
+        rp_id=RP_ID,
         rp_name="Webauthn Updater.",
         user_id=user.user_id,
         user_name=user.user_name,
@@ -119,7 +120,7 @@ def register_response():
     verified_registration = verify_registration_response(
         credential=credential,
         expected_challenge=user.last_challenge,
-        expected_rp_id=HOST_NAME,
+        expected_rp_id=RP_ID,
         expected_origin=HOST_URL
     )
 
@@ -139,7 +140,7 @@ def identify_credential():
         return 'User has not registered a credential', 400
 
     authentication_options = generate_authentication_options(
-        rp_id=HOST_NAME
+        rp_id=RP_ID
     )
     user.last_challenge = authentication_options.challenge
 
@@ -159,7 +160,7 @@ def authentication_response():
     verified_authentication = verify_authentication_response(
         credential=credential,
         expected_challenge=user.last_challenge,
-        expected_rp_id=HOST_NAME,
+        expected_rp_id=RP_ID,
         expected_origin=HOST_URL,
         credential_public_key=stored_credential.public_key,
         credential_current_sign_count=0
@@ -179,7 +180,7 @@ def write_blob():
         return 'No credential for user is selected', 400
 
     authentication_options = generate_authentication_options(
-        rp_id=HOST_NAME,
+        rp_id=RP_ID,
         allow_credentials=[PublicKeyCredentialDescriptor(id=user.selected_credential.id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             write=f'{b64encode(user.selected_credential.id).decode("UTF-8")} can open {str(random.randint(0, 100))}% of our doors :)'.encode('UTF-8')
@@ -199,7 +200,7 @@ def read_blob():
         return 'No credential for user is selected', 400
 
     authentication_options = generate_authentication_options(
-        rp_id=HOST_NAME,
+        rp_id=RP_ID,
         allow_credentials=[PublicKeyCredentialDescriptor(id=user.selected_credential.id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             read=True
