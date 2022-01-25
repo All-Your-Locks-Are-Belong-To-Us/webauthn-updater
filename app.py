@@ -17,7 +17,7 @@ from webauthn.helpers.structs import\
     RegistrationCredential, AuthenticationCredential
 
 from py_webauthn.webauthn import base64url_to_bytes
-from py_webauthn.webauthn.helpers import decode_credential_public_key, aaguid_to_string
+from py_webauthn.webauthn.helpers import decode_credential_public_key, aaguid_to_string, bytes_to_base64url
 
 app = Flask(__name__)
 app.config["OIDC_CLIENT_SECRETS"] = "client_secrets.json"
@@ -121,23 +121,20 @@ def register_response():
     )
 
     user_id = oidc.user_getfield('sub')
-    credential = dict(credentialData=dict(
-        credentialId=verified_registration.aaguid,
-        publicKey=verified_registration.credential_public_key # TODO bring publickey into string format
-    ))
-    # as we need to send an array of credentials, we need the existing credentials, but they are not exposed via the GET user endpoint
-    response = keycloak_admin.update_user(user_id=user_id, payload=dict(credentials=[{
-            "type": "webauthn",
-            "id": "5sm4PxojdhSwTwCvfsvjRywsYXHCVaS1GAhmE05tqtU",
-            "createdDate": "1643058321",
-            "credentialData": "{\"credentialId\": \"id\", \"credentialPublicKey\": \"pubkey\"}"
-        }, {
-            "type": "password",
-            "value": "password",
-            "temporary": False
-        }]))  # this call keeps failing with 400: b'{"errorMessage":"Could not update user!"}' when a webauthn
-              # credential is added, but it works with only the password credential
-    print(response)
+    credential = dict(
+        type="webauthn",
+        secretData="{}",
+        userLabel="webauthn-updater",
+        credentialData=json.dumps(dict(
+            credentialId=bytes_to_base64url(verified_registration.credential_id),
+            credentialPublicKey=bytes_to_base64url(verified_registration.credential_public_key),
+            aaguid=verified_registration.aaguid,
+            counter=verified_registration.sign_count,
+            attestationStatementFormat=verified_registration.fmt,
+            attestationStatement=bytes_to_base64url(verified_registration.attestation_object),
+        ))
+    )
+    keycloak_admin.update_user(user_id=user_id, payload=dict(credentials=[credential]))
 
     return '', 204
 
@@ -170,10 +167,11 @@ def authentication_response():
         credential=credential,
         expected_challenge=session["last_challenge"],
         expected_rp_id='localhost',
-        expected_origin='https://localhost:5000',
-        credential_public_key=stored_credential.public_key,
+        expected_origin='http://localhost:5000',
+        credential_public_key=base64url_to_bytes(stored_credential["credentialData"]["credentialPublicKey"]),
         credential_current_sign_count=0
     )
+    session["selected_credential"] = verified_authentication.credential_id
 
     return b64encode(verified_authentication.credential_id)
 
@@ -184,12 +182,14 @@ def write_blob():
     credentials = get_credentials_for_user(oidc.user_getfield('sub'))
     if not credentials:
         return 'User has not registered a credential', 400
+    if not (selected_credential := session["selected_credential"]):
+        return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
-        rp_id='felixgohla.de',
-        allow_credentials=[PublicKeyCredentialDescriptor(id=base64url_to_bytes(cred["id"])) for cred in credentials],
+        rp_id='localhost',
+        allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
-            write=f'{oidc.user_getfield("sub")} can open {str(random.randint(0, 100))}% of our doors :)'.encode('UTF-8')
+            write=f'{oidc.user_getfield("preferred_username")} can open {str(random.randint(0, 100))}% of our doors :)'.encode('UTF-8')
         )
     )
 
@@ -202,10 +202,12 @@ def read_blob():
     credentials = get_credentials_for_user(oidc.user_getfield('sub'))
     if not credentials:
         return 'User has not registered a credential', 400
+    if not (selected_credential := session["selected_credential"]):
+        return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
-        rp_id='felixgohla.de',
-        allow_credentials=[PublicKeyCredentialDescriptor(id=base64url_to_bytes(cred["id"])) for cred in credentials],
+        rp_id='localhost',
+        allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             read=True
         )
