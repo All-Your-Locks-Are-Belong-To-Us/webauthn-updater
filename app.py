@@ -1,8 +1,7 @@
 import dataclasses
 import json
+import os
 import random
-import uuid
-from datetime import datetime
 from typing import List
 from base64 import b64encode
 
@@ -17,16 +16,16 @@ from webauthn.helpers.structs import\
     RegistrationCredential, AuthenticationCredential
 
 from py_webauthn.webauthn import base64url_to_bytes
-from py_webauthn.webauthn.helpers import decode_credential_public_key, aaguid_to_string, bytes_to_base64url
+from py_webauthn.webauthn.helpers import bytes_to_base64url
 
 app = Flask(__name__)
 app.config["OIDC_CLIENT_SECRETS"] = "client_secrets.json"
 app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 oidc = OpenIDConnect(app)
-keycloak_admin = KeycloakAdmin(server_url="https://kc.felixgohla.de/auth/admin",
-                               username='admin-user',
-                               password='admin',
+keycloak_admin = KeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/admin",
+                               username=os.environ['WAU_KEYCLOAK_USERNAME'],
+                               password=os.environ['WAU_KEYCLOAK_PASSWORD'],
                                realm_name="hotsir",
                                verify=True)
 
