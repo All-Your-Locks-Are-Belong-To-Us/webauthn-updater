@@ -1,0 +1,12 @@
+[Unit]
+Description=WebAuthn Updater Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/webauthn-updater
+ExecStartPre=/usr/local/bin/pipenv install
+ExecStart=/usr/local/bin/pipenv run python3 app.py
+
+[Install]
+WantedBy=multi-user.target

@@ -4,6 +4,7 @@ import os
 import random
 from typing import List
 from base64 import b64encode
+import re
 
 from flask import Flask, render_template, request, redirect, session
 from flask_oidc import OpenIDConnect
@@ -14,14 +15,17 @@ from webauthn.helpers.structs import\
     AuthenticationExtensionsLargeBlobInputs, \
     LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement, PublicKeyCredentialDescriptor, \
     RegistrationCredential, AuthenticationCredential
-
 from py_webauthn.webauthn import base64url_to_bytes
 from py_webauthn.webauthn.helpers import bytes_to_base64url
+
+HOST_URL = os.environ["WAU_HOST_URL"]
+RP_ID = re.search(r'https?://([^:]+)', HOST_URL).group(1)
 
 app = Flask(__name__)
 app.config["OIDC_CLIENT_SECRETS"] = "client_secrets.json"
 app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
+app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
 keycloak_admin = KeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/admin",
                                username=os.environ['WAU_KEYCLOAK_USERNAME'],
@@ -91,7 +95,7 @@ def logout():
 @oidc.require_login
 def register():
     registration_options = generate_registration_options(
-        rp_id="localhost",
+        rp_id=RP_ID,
         rp_name="Webauthn Updater.",
         user_id=oidc.user_getfield('sub'),
         user_name=oidc.user_getfield('preferred_username'),
@@ -115,8 +119,8 @@ def register_response():
     verified_registration = verify_registration_response(
         credential=credential,
         expected_challenge=session["last_challenge"],
-        expected_rp_id='localhost',
-        expected_origin='http://localhost:5000'
+        expected_rp_id=RP_ID,
+        expected_origin=HOST_URL
     )
 
     user_id = oidc.user_getfield('sub')
@@ -142,7 +146,7 @@ def register_response():
 @oidc.require_login
 def identify_credential():
     authentication_options = generate_authentication_options(
-        rp_id='localhost',
+        rp_id=RP_ID
     )
     session["last_challenge"] = authentication_options.challenge
 
@@ -165,8 +169,8 @@ def authentication_response():
     verified_authentication = verify_authentication_response(
         credential=credential,
         expected_challenge=session["last_challenge"],
-        expected_rp_id='localhost',
-        expected_origin='http://localhost:5000',
+        expected_rp_id=RP_ID,
+        expected_origin=HOST_URL,
         credential_public_key=base64url_to_bytes(stored_credential["credentialData"]["credentialPublicKey"]),
         credential_current_sign_count=0
     )
@@ -185,7 +189,7 @@ def write_blob():
         return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
-        rp_id='localhost',
+        rp_id=RP_ID,
         allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             write=f'{oidc.user_getfield("preferred_username")} can open {str(random.randint(0, 100))}% of our doors :)'.encode('UTF-8')
@@ -205,7 +209,7 @@ def read_blob():
         return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
-        rp_id='localhost',
+        rp_id=RP_ID,
         allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             read=True
@@ -216,4 +220,4 @@ def read_blob():
 
 
 if __name__ == '__main__':
-    app.run(ssl_context=("cert.pem", "key.pem"), debug=True)
+    app.run(port=os.getenv("WAU_SERVER_PORT", 8002), host="localhost")
