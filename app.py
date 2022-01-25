@@ -16,6 +16,7 @@ from webauthn.helpers.structs import\
     LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement, PublicKeyCredentialDescriptor, \
     RegistrationCredential, AuthenticationCredential
 
+from py_webauthn.webauthn import base64url_to_bytes
 from py_webauthn.webauthn.helpers import decode_credential_public_key, aaguid_to_string
 
 app = Flask(__name__)
@@ -36,7 +37,7 @@ def parse_credential_data(credential):
 
 
 def get_credentials_for_user(user_id):
-    credentials = json.loads(keycloak_admin.raw_get(f"admin/realms/hotsir/users/{user_id}/credentials"))
+    credentials = json.loads(keycloak_admin.raw_get(f"admin/realms/hotsir/users/{user_id}/credentials").content)
     return map(parse_credential_data, filter(lambda credential: credential['type'] == 'webauthn', credentials))
 
 
@@ -185,8 +186,8 @@ def write_blob():
         return 'User has not registered a credential', 400
 
     authentication_options = generate_authentication_options(
-        rp_id='localhost',
-        allow_credentials=[PublicKeyCredentialDescriptor(id=cred.id) for cred in credentials],
+        rp_id='felixgohla.de',
+        allow_credentials=[PublicKeyCredentialDescriptor(id=base64url_to_bytes(cred["id"])) for cred in credentials],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             write=f'{oidc.user_getfield("sub")} can open {str(random.randint(0, 100))}% of our doors :)'.encode('UTF-8')
         )
@@ -203,8 +204,8 @@ def read_blob():
         return 'User has not registered a credential', 400
 
     authentication_options = generate_authentication_options(
-        rp_id='localhost',
-        allow_credentials=[PublicKeyCredentialDescriptor(id=cred.id) for cred in credentials],
+        rp_id='felixgohla.de',
+        allow_credentials=[PublicKeyCredentialDescriptor(id=base64url_to_bytes(cred["id"])) for cred in credentials],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             read=True
         )
