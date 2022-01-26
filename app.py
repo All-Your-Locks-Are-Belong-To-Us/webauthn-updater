@@ -44,41 +44,6 @@ def get_credentials_for_user(user_id):
     return map(parse_credential_data, filter(lambda credential: credential['type'] == 'webauthn', credentials))
 
 
-@dataclasses.dataclass
-class Credential:
-    id: bytes = b''
-    public_key: bytes = b''
-
-
-@dataclasses.dataclass
-class User:
-    user_id: str
-    user_name: str
-    selected_credential: Credential = None
-    last_challenge: bytes = b''
-    credentials: List[Credential] = dataclasses.field(default_factory=list)
-
-    def find_credential_by_id(self, credential_id):
-        for credential in self.credentials:
-            if credential.id == credential_id:
-                return credential
-        return None
-
-    def find_or_create_credential(self, credential_id, credential_public_key):
-        credential = self.find_credential_by_id(credential_id)
-        if credential is not None:
-            return credential
-        credential = Credential(
-            credential_id,
-            credential_public_key
-        )
-        self.credentials.append(credential)
-        return credential
-
-
-
-
-
 @app.route('/')
 @oidc.require_login
 def index():
@@ -158,7 +123,7 @@ def identify_credential():
 @oidc.require_login
 def authentication_response():
     stored_credentials = get_credentials_for_user(oidc.user_getfield('sub'))
-    if not stored_credentials:
+    if stored_credentials is None:
         return 'User has not registered a credential', 400
     credential = AuthenticationCredential.parse_raw(request.get_data())
     stored_credential = None
@@ -175,7 +140,7 @@ def authentication_response():
         credential_public_key=base64url_to_bytes(stored_credential["credentialData"]["credentialPublicKey"]),
         credential_current_sign_count=0
     )
-    session["selected_credential"] = verified_authentication.credential_id
+    session["selected_credential_id"] = verified_authentication.credential_id
 
     return b64encode(verified_authentication.credential_id)
 
@@ -184,14 +149,14 @@ def authentication_response():
 @oidc.require_login
 def write_blob():
     credentials = get_credentials_for_user(oidc.user_getfield('sub'))
-    if not credentials:
+    if credentials is None:
         return 'User has not registered a credential', 400
-    if not (selected_credential := session["selected_credential"]):
+    if (selected_credential_id := session["selected_credential_id"]) is None:
         return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
         rp_id=RP_ID,
-        allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential)],
+        allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential_id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             write=f'{oidc.user_getfield("access_rights")}'.encode('UTF-8')
         )
@@ -204,14 +169,14 @@ def write_blob():
 @oidc.require_login
 def read_blob():
     credentials = get_credentials_for_user(oidc.user_getfield('sub'))
-    if not credentials:
+    if credentials is None:
         return 'User has not registered a credential', 400
-    if not (selected_credential := session["selected_credential"]):
+    if (selected_credential_id := session["selected_credential_id"]) is None:
         return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
         rp_id=RP_ID,
-        allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential)],
+        allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential_id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             read=True
         )

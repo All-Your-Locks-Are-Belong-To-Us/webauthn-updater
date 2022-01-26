@@ -17,6 +17,8 @@ For the app to work properly, some environment variables need to be set:
 |WAU_KEYCLOAK_HOST_NAME|*unset*|`kc.felixgohla.de`|`kc.felixgohla.de`|
 |WAU_KEYCLOAK_CLIENT_ID|*unset*|`webauthn-updater`|`deployed-webauthn-updater`|
 |WAU_KEYCLOAK_CLIENT_SECRET|*unset*|*retrieve from Keycloak*|*retrieve from Keycloak*|
+|WAU_KEYCLOAK_USERNAME|*unset*|`admin-user`|`admin-user`|
+|WAU_KEYCLOAK_PASSWORD|*unset*|*retrieve from Keycloak*|*retrieve from Keycloak*|
 
 Generate the OIDC config file using the environment variables by running `envsubst < client_secrets.tmpl.json > client_secrets.json`
 
