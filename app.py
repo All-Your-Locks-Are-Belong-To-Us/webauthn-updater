@@ -11,10 +11,10 @@ from flask_oidc import OpenIDConnect
 from keycloak import KeycloakAdmin
 from webauthn import generate_registration_options, generate_authentication_options, options_to_json, \
     verify_registration_response, verify_authentication_response
-from webauthn.helpers.structs import\
+from webauthn.helpers.structs import \
     AuthenticationExtensionsLargeBlobInputs, \
     LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement, PublicKeyCredentialDescriptor, \
-    RegistrationCredential, AuthenticationCredential
+    RegistrationCredential, AuthenticationCredential, AttestationConveyancePreference
 from py_webauthn.webauthn import base64url_to_bytes
 from py_webauthn.webauthn.helpers import bytes_to_base64url
 
@@ -105,7 +105,8 @@ def register():
         ),
         authenticator_selection=AuthenticatorSelectionCriteria(
             resident_key=ResidentKeyRequirement.REQUIRED
-        )
+        ),
+        attestation=AttestationConveyancePreference.DIRECT,
     )
     session["last_challenge"] = registration_options.challenge
 
@@ -192,7 +193,7 @@ def write_blob():
         rp_id=RP_ID,
         allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
-            write=f'{oidc.user_getfield("preferred_username")} can open {str(random.randint(0, 100))}% of our doors :)'.encode('UTF-8')
+            write=f'{oidc.user_getfield("access_rights")}'.encode('UTF-8')
         )
     )
 
