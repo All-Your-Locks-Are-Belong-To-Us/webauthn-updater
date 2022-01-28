@@ -109,8 +109,15 @@ def register_response():
 @app.route('/identify-credential')
 @oidc.require_login
 def identify_credential():
+    stored_credentials = get_credentials_for_user(oidc.user_getfield('sub'))
     authentication_options = generate_authentication_options(
-        rp_id=RP_ID
+        rp_id=RP_ID,
+        # We cannot rely completely on the discoverable credential feature here, as that could make the authenticator
+        # select a credential from another user.
+        allow_credentials=[
+            PublicKeyCredentialDescriptor(id=base64url_to_bytes(credential["credentialData"]["credentialId"]))
+            for credential in stored_credentials
+        ]
     )
     session["last_challenge"] = authentication_options.challenge
 
