@@ -28,7 +28,8 @@ keycloak_admin = KeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HO
                                username=os.environ['WAU_KEYCLOAK_USERNAME'],
                                password=os.environ['WAU_KEYCLOAK_PASSWORD'],
                                realm_name="hotsir",
-                               verify=True)
+                               verify=True,
+                               auto_refresh_token=['get', 'put', 'post', 'delete'])
 
 
 def parse_credential_data(credential):
