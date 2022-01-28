@@ -20,6 +20,8 @@ For the app to work properly, some environment variables need to be set:
 |WAU_KEYCLOAK_USERNAME|*unset*|`admin-user`|`admin-user`|
 |WAU_KEYCLOAK_PASSWORD|*unset*|*retrieve from Keycloak*|*retrieve from Keycloak*|
 
+Note that `WAU_KEYCLOAK_USERNAME` must belong to a user with admin rights in the target Keycloak realm.
+
 Generate the OIDC config file using the environment variables by running `envsubst < client_secrets.tmpl.json > client_secrets.json`
 
 ### Running in current shell session
@@ -37,6 +39,8 @@ As the app requires an environment variable to be set, run `systemctl edit webau
 ```shell
 [Service]
 Environment="WAU_HOST_URL=<your url value here>"
+Environment="WAU_KEYCLOAK_USERNAME=<your username here>"
+Environment="WAU_KEYCLOAK_PASSWORD=<your password here>"
 ```
 
 Finally, start the service with `systemctl start webauthn-updater.service`.

@@ -1,8 +1,5 @@
-import dataclasses
 import json
 import os
-import random
-from typing import List
 from base64 import b64encode
 import re
 
@@ -41,7 +38,7 @@ def parse_credential_data(credential):
 
 def get_credentials_for_user(user_id):
     credentials = json.loads(keycloak_admin.raw_get(f"admin/realms/hotsir/users/{user_id}/credentials").content)
-    return map(parse_credential_data, filter(lambda credential: credential['type'] == 'webauthn', credentials))
+    return list(map(parse_credential_data, filter(lambda credential: credential['type'] == 'webauthn', credentials)))
 
 
 @app.route('/')
@@ -123,7 +120,7 @@ def identify_credential():
 @oidc.require_login
 def authentication_response():
     stored_credentials = get_credentials_for_user(oidc.user_getfield('sub'))
-    if stored_credentials is None:
+    if len(stored_credentials) == 0:
         return 'User has not registered a credential', 400
     credential = AuthenticationCredential.parse_raw(request.get_data())
     stored_credential = None
@@ -149,7 +146,7 @@ def authentication_response():
 @oidc.require_login
 def write_blob():
     credentials = get_credentials_for_user(oidc.user_getfield('sub'))
-    if credentials is None:
+    if len(credentials) == 0:
         return 'User has not registered a credential', 400
     if (selected_credential_id := session["selected_credential_id"]) is None:
         return "User has not selected a credential to write to", 400
@@ -169,7 +166,7 @@ def write_blob():
 @oidc.require_login
 def read_blob():
     credentials = get_credentials_for_user(oidc.user_getfield('sub'))
-    if credentials is None:
+    if len(credentials) == 0:
         return 'User has not registered a credential', 400
     if (selected_credential_id := session["selected_credential_id"]) is None:
         return "User has not selected a credential to write to", 400
