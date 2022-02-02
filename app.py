@@ -1,18 +1,19 @@
+import json
 import os
-import dataclasses
-import random
-from typing import List
 from base64 import b64encode
 import re
 
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session
 from flask_oidc import OpenIDConnect
+from keycloak import KeycloakAdmin
 from webauthn import generate_registration_options, generate_authentication_options, options_to_json, \
     verify_registration_response, verify_authentication_response
-from webauthn.helpers.structs import\
+from webauthn.helpers.structs import \
     AuthenticationExtensionsLargeBlobInputs, \
     LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement, PublicKeyCredentialDescriptor, \
-    RegistrationCredential, AuthenticationCredential
+    RegistrationCredential, AuthenticationCredential, AttestationConveyancePreference
+from py_webauthn.webauthn import base64url_to_bytes
+from py_webauthn.webauthn.helpers import bytes_to_base64url
 
 HOST_URL = os.environ["WAU_HOST_URL"]
 RP_ID = re.search(r'https?://([^:]+)', HOST_URL).group(1)
@@ -23,58 +24,22 @@ app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
-app.users = []
+keycloak_admin = KeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/admin",
+                               username=os.environ['WAU_KEYCLOAK_USERNAME'],
+                               password=os.environ['WAU_KEYCLOAK_PASSWORD'],
+                               realm_name="hotsir",
+                               verify=True,
+                               auto_refresh_token=['get', 'put', 'post', 'delete'])
 
 
-@dataclasses.dataclass
-class Credential:
-    id: bytes = b''
-    public_key: bytes = b''
+def parse_credential_data(credential):
+    credential["credentialData"] = json.loads(credential["credentialData"])
+    return credential
 
 
-@dataclasses.dataclass
-class User:
-    user_id: str
-    user_name: str
-    selected_credential: Credential = None
-    last_challenge: bytes = b''
-    credentials: List[Credential] = dataclasses.field(default_factory=list)
-
-    def find_credential_by_id(self, credential_id):
-        for credential in self.credentials:
-            if credential.id == credential_id:
-                return credential
-        return None
-
-    def find_or_create_credential(self, credential_id, credential_public_key):
-        credential = self.find_credential_by_id(credential_id)
-        if credential is not None:
-            return credential
-        credential = Credential(
-            credential_id,
-            credential_public_key
-        )
-        self.credentials.append(credential)
-        return credential
-
-
-def find_user_by_name(user_name):
-    for user in app.users:
-        if user.user_name == user_name:
-            return user
-    return None
-
-
-def find_or_create_user(user_name):
-    user = find_user_by_name(user_name)
-    if user is not None:
-        return user
-    user = User(
-        str(random.randint(10000, 99999)),
-        user_name
-    )
-    app.users.append(user)
-    return user
+def get_credentials_for_user(user_id):
+    credentials = json.loads(keycloak_admin.raw_get(f"admin/realms/hotsir/users/{user_id}/credentials").content)
+    return list(map(parse_credential_data, filter(lambda credential: credential['type'] == 'webauthn', credentials)))
 
 
 @app.route('/')
@@ -92,22 +57,21 @@ def logout():
 @app.route('/register')
 @oidc.require_login
 def register():
-    user = find_or_create_user(oidc.user_getfield('preferred_username'))
-
     registration_options = generate_registration_options(
         rp_id=RP_ID,
         rp_name="Webauthn Updater.",
-        user_id=user.user_id,
-        user_name=user.user_name,
-        user_display_name=user.user_name,
+        user_id=oidc.user_getfield('sub'),
+        user_name=oidc.user_getfield('preferred_username'),
+        user_display_name=oidc.user_getfield('name'),
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
-            support=LargeBlobSupport.REQUIRED
+            support=LargeBlobSupport.REQUIRED,
         ),
         authenticator_selection=AuthenticatorSelectionCriteria(
             resident_key=ResidentKeyRequirement.REQUIRED
-        )
+        ),
+        attestation=AttestationConveyancePreference.DIRECT,
     )
-    user.last_challenge = registration_options.challenge
+    session["last_challenge"] = registration_options.challenge
 
     return options_to_json(registration_options)
 
@@ -116,18 +80,28 @@ def register():
 @oidc.require_login
 def register_response():
     credential = RegistrationCredential.parse_raw(request.get_data())
-    user = find_or_create_user(oidc.user_getfield('preferred_username'))
     verified_registration = verify_registration_response(
         credential=credential,
-        expected_challenge=user.last_challenge,
+        expected_challenge=session["last_challenge"],
         expected_rp_id=RP_ID,
         expected_origin=HOST_URL
     )
 
-    user.find_or_create_credential(
-        verified_registration.credential_id,
-        verified_registration.credential_public_key
+    user_id = oidc.user_getfield('sub')
+    credential = dict(
+        type="webauthn",
+        secretData="{}",
+        userLabel="webauthn-updater",
+        credentialData=json.dumps(dict(
+            credentialId=bytes_to_base64url(verified_registration.credential_id),
+            credentialPublicKey=bytes_to_base64url(verified_registration.credential_public_key),
+            aaguid=verified_registration.aaguid,
+            counter=verified_registration.sign_count,
+            attestationStatementFormat=verified_registration.fmt,
+            attestationStatement=bytes_to_base64url(verified_registration.attestation_object),
+        ))
     )
+    keycloak_admin.update_user(user_id=user_id, payload=dict(credentials=[credential]))
 
     return '', 204
 
@@ -135,14 +109,17 @@ def register_response():
 @app.route('/identify-credential')
 @oidc.require_login
 def identify_credential():
-    user: User = find_user_by_name(oidc.user_getfield('preferred_username'))
-    if user is None:
-        return 'User has not registered a credential', 400
-
+    stored_credentials = get_credentials_for_user(oidc.user_getfield('sub'))
     authentication_options = generate_authentication_options(
-        rp_id=RP_ID
+        rp_id=RP_ID,
+        # We cannot rely completely on the discoverable credential feature here, as that could make the authenticator
+        # select a credential from another user.
+        allow_credentials=[
+            PublicKeyCredentialDescriptor(id=base64url_to_bytes(credential["credentialData"]["credentialId"]))
+            for credential in stored_credentials
+        ]
     )
-    user.last_challenge = authentication_options.challenge
+    session["last_challenge"] = authentication_options.challenge
 
     return options_to_json(authentication_options)
 
@@ -150,22 +127,25 @@ def identify_credential():
 @app.route('/authentication-response', methods=['POST'])
 @oidc.require_login
 def authentication_response():
-    user: User = find_user_by_name(oidc.user_getfield('preferred_username'))
-    if user is None:
+    stored_credentials = get_credentials_for_user(oidc.user_getfield('sub'))
+    if len(stored_credentials) == 0:
         return 'User has not registered a credential', 400
     credential = AuthenticationCredential.parse_raw(request.get_data())
-    stored_credential = user.find_credential_by_id(credential.raw_id)
+    stored_credential = None
+    for cred in stored_credentials:
+        if cred["credentialData"]["credentialId"] == credential.id:
+            stored_credential = cred
     if stored_credential is None:
         return 'Credential with this ID is not registered', 400
     verified_authentication = verify_authentication_response(
         credential=credential,
-        expected_challenge=user.last_challenge,
+        expected_challenge=session["last_challenge"],
         expected_rp_id=RP_ID,
         expected_origin=HOST_URL,
-        credential_public_key=stored_credential.public_key,
+        credential_public_key=base64url_to_bytes(stored_credential["credentialData"]["credentialPublicKey"]),
         credential_current_sign_count=0
     )
-    user.selected_credential = stored_credential
+    session["selected_credential_id"] = verified_authentication.credential_id
 
     return b64encode(verified_authentication.credential_id)
 
@@ -173,17 +153,17 @@ def authentication_response():
 @app.route('/write-blob')
 @oidc.require_login
 def write_blob():
-    user: User = find_user_by_name(oidc.user_getfield('preferred_username'))
-    if user is None:
+    credentials = get_credentials_for_user(oidc.user_getfield('sub'))
+    if len(credentials) == 0:
         return 'User has not registered a credential', 400
-    if user.selected_credential is None:
-        return 'No credential for user is selected', 400
+    if (selected_credential_id := session["selected_credential_id"]) is None:
+        return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
         rp_id=RP_ID,
-        allow_credentials=[PublicKeyCredentialDescriptor(id=user.selected_credential.id)],
+        allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential_id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
-            write=f'{b64encode(user.selected_credential.id).decode("UTF-8")} can open {str(random.randint(0, 100))}% of our doors :)'.encode('UTF-8')
+            write=f'{oidc.user_getfield("access_rights")}'.encode('UTF-8')
         )
     )
 
@@ -193,15 +173,15 @@ def write_blob():
 @app.route('/read-blob')
 @oidc.require_login
 def read_blob():
-    user: User = find_user_by_name(oidc.user_getfield('preferred_username'))
-    if user is None:
+    credentials = get_credentials_for_user(oidc.user_getfield('sub'))
+    if len(credentials) == 0:
         return 'User has not registered a credential', 400
-    if user.selected_credential is None:
-        return 'No credential for user is selected', 400
+    if (selected_credential_id := session["selected_credential_id"]) is None:
+        return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
         rp_id=RP_ID,
-        allow_credentials=[PublicKeyCredentialDescriptor(id=user.selected_credential.id)],
+        allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential_id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             read=True
         )
