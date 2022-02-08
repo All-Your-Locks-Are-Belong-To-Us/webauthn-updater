@@ -1,4 +1,5 @@
 from typing import List, Optional
+from py_webauthn.webauthn.helpers.structs import CredentialProtectionPolicy
 
 from webauthn.helpers import generate_challenge
 from webauthn.helpers.cose import COSEAlgorithmIdentifier
@@ -11,7 +12,9 @@ from webauthn.helpers.structs import (
     PublicKeyCredentialParameters,
     PublicKeyCredentialRpEntity,
     PublicKeyCredentialUserEntity,
-    ResidentKeyRequirement, AuthenticationExtensionClientInputs,
+    ResidentKeyRequirement,
+    AuthenticationExtensionClientInputs,
+    CredentialProtectionPolicy,
 )
 
 
@@ -56,7 +59,9 @@ def generate_registration_options(
     authenticator_selection: Optional[AuthenticatorSelectionCriteria] = None,
     exclude_credentials: Optional[List[PublicKeyCredentialDescriptor]] = None,
     supported_pub_key_algs: Optional[List[COSEAlgorithmIdentifier]] = None,
-    large_blob_extension: Optional[AuthenticationExtensionsLargeBlobInputs] = None
+    large_blob_extension: Optional[AuthenticationExtensionsLargeBlobInputs] = None,
+    credential_protection_policy: Optional[CredentialProtectionPolicy] = None,
+    enforce_credential_protection_policy: Optional[bool] = None
 ) -> PublicKeyCredentialCreationOptions:
     """Generate options for registering a credential via navigator.credentials.create()
 
@@ -72,7 +77,9 @@ def generate_registration_options(
         (optional) `authenticator_selection`: Require certain characteristics about an authenticator, like attachment, support for resident keys, user verification, etc...
         (optional) `exclude_credentials`: A list of credentials the user has previously registered so that they cannot re-register them.
         (optional) `supported_pub_key_algs`: A list of public key algorithm IDs the RP chooses to restrict support to. Defaults to all supported algorithm IDs.
-        (optional) `large_blob_extension`: ????
+        (optional) `large_blob_extension`: Settings for large blobs.
+        (optional) `credential_protection_policy`: How (discoverable) credentials shall be protected.
+        (optional) `enforce_credential_protection_policy`: Abort if authenticator does not support credential the given protection policy.
 
     Returns:
         Registration options ready for the browser. Consider using `helpers.options_to_json()` in this library to quickly convert the options to JSON.
@@ -129,9 +136,10 @@ def generate_registration_options(
             authenticator_selection.require_resident_key = True
         options.authenticator_selection = authenticator_selection
 
-    if large_blob_extension is not None:
-        options.extensions = AuthenticationExtensionClientInputs(
-            large_blob=large_blob_extension
-        )
+    options.extensions = AuthenticationExtensionClientInputs(
+        large_blob=large_blob_extension,
+        credential_protection_policy=credential_protection_policy,
+        enforce_credential_protection_policy=enforce_credential_protection_policy,
+    )
 
     return options

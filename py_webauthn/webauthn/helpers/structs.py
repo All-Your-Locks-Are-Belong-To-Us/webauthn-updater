@@ -259,7 +259,8 @@ class LargeBlobSupport(str, Enum):
     """???
 
     Members:
-        `???`: ???
+        `REQUIRED`: Large blob support is required.
+        `PREFERRED`: Large blob support is preferred, but operation will not fail if the authenticator does not support large blobs.
 
     https://www.w3.org/TR/webauthn-2/#enumdef-largeblobsupport
     """
@@ -267,7 +268,22 @@ class LargeBlobSupport(str, Enum):
     REQUIRED = "required"
     PREFERRED = "preferred"
 
+class CredentialProtectionPolicy(str, Enum):
+    """Various registered values indicating whether a credential shall be protected (influences how discoverable credentials are handled).
 
+    Members:
+        `USER_VERIFICATION_OPTIONAL`
+        `USER_VERIFICATION_OPTIONAL_WITH_CREDENTIAL_ID_LIST`
+        `USER_VERIFICATION_REQUIRED`
+
+    https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-20210615.html#sctn-credProtect-extension
+    """
+    USER_VERIFICATION_OPTIONAL = 'userVerificationOptional'
+    USER_VERIFICATION_OPTIONAL_WITH_CREDENTIAL_ID_LIST = 'userVerificationOptionalWithCredentialIDList'
+    USER_VERIFICATION_REQUIRED = 'userVerificationRequired'
+
+
+# See https://www.w3.org/TR/webauthn-2/#sctn-large-blob-extension
 @define
 class AuthenticationExtensionsLargeBlobInputs:
     support: Optional[LargeBlobSupport] = None
@@ -277,8 +293,11 @@ class AuthenticationExtensionsLargeBlobInputs:
 
 @define
 class AuthenticationExtensionClientInputs:
+    # See https://www.w3.org/TR/webauthn-2/#sctn-large-blob-extension
     large_blob: Optional[AuthenticationExtensionsLargeBlobInputs] = None
-
+    # See https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-20210615.html#credProtectFeatureDetection
+    credential_protection_policy: Optional[CredentialProtectionPolicy] = None
+    enforce_credential_protection_policy: Optional[bool] = None
 
 @define
 class CollectedClientData:
