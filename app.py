@@ -3,6 +3,7 @@ import os
 from base64 import b64encode
 import re
 
+from ecdsa import SigningKey
 from flask import Flask, render_template, request, redirect, session
 from flask_oidc import OpenIDConnect
 from patched_keycloak_admin import PatchedKeycloakAdmin
@@ -25,6 +26,7 @@ app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
+signing_key = SigningKey.from_string(base64url_to_bytes(os.environ["WAU_SIGNING_KEY"])) if "WAU_SIGNING_KEY" in os.environ else None
 keycloak_admin = PatchedKeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/",
                                       client_id=os.environ['WAU_KEYCLOAK_CLIENT_ID'],
                                       client_secret_key=os.environ['WAU_KEYCLOAK_CLIENT_SECRET'],
@@ -41,6 +43,15 @@ def parse_credential_data(credential):
 def get_credentials_for_user(user_id):
     credentials = json.loads(keycloak_admin.raw_get(f"admin/realms/hotsir/users/{user_id}/credentials").content)
     return list(map(parse_credential_data, filter(lambda credential: credential['type'] == 'webauthn', credentials)))
+
+
+def get_signed_access_rights():
+    access_rights = oidc.user_getfield("access_rights")
+    return json.dumps({
+        "access_rights": access_rights,
+        "credentialPublicKey": session["selected_credential_publicKey"],
+        "signature": bytes_to_base64url(signing_key.sign(bytes(f"{access_rights}{session['selected_credential_publicKey']}", "utf-8"))) if signing_key is not None else ""
+    }).encode("utf-8")
 
 
 @app.route('/')
@@ -149,6 +160,7 @@ def authentication_response():
         credential_current_sign_count=0
     )
     session["selected_credential_id"] = verified_authentication.credential_id
+    session["selected_credential_publicKey"] = stored_credential["credentialData"]["credentialPublicKey"]
 
     return b64encode(verified_authentication.credential_id)
 
@@ -166,7 +178,7 @@ def write_blob():
         rp_id=RP_ID,
         allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential_id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
-            write=f'{oidc.user_getfield("access_rights")}'.encode('UTF-8')
+            write=get_signed_access_rights()
         )
     )
 
