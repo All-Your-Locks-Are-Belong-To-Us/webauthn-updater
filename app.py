@@ -5,7 +5,7 @@ import re
 
 from flask import Flask, render_template, request, redirect, session
 from flask_oidc import OpenIDConnect
-from keycloak import KeycloakAdmin
+from patched_keycloak_admin import PatchedKeycloakAdmin
 from webauthn import generate_registration_options, generate_authentication_options, options_to_json, \
     verify_registration_response, verify_authentication_response
 from webauthn.helpers.structs import \
@@ -24,12 +24,12 @@ app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
-keycloak_admin = KeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/admin",
-                               username=os.environ['WAU_KEYCLOAK_USERNAME'],
-                               password=os.environ['WAU_KEYCLOAK_PASSWORD'],
-                               realm_name="hotsir",
-                               verify=True,
-                               auto_refresh_token=['get', 'put', 'post', 'delete'])
+keycloak_admin = PatchedKeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/",
+                                      client_id=os.environ['WAU_KEYCLOAK_CLIENT_ID'],
+                                      client_secret_key=os.environ['WAU_KEYCLOAK_CLIENT_SECRET'],
+                                      realm_name="hotsir",
+                                      verify=True,
+                                      auto_refresh_token=['get', 'put', 'post', 'delete'])
 
 
 def parse_credential_data(credential):
