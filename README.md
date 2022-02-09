@@ -6,7 +6,7 @@ This project provides a demonstration of writing data to a FIDO authenticator us
 
 This project assumes Python 3.9. Make sure to have Pip and Pipenv installed.
 
-The dependencies of the app can be installed using `pipenv install`. (Note: the `webauthn` packages needed to be extended to support the largeBlob extension. Therefore, the package is installed automatically from the local `py_webauthn` directory).
+The dependencies of the app can be installed using `pipenv install`. (Note: the `webauthn` packages needed to be extended to support the largeBlob and credProtect extension. Therefore, the package is installed automatically from the local `py_webauthn` directory).
 
 For the app to work properly, some environment variables need to be set:
 
@@ -43,4 +43,4 @@ Finally, start the service with `systemctl start webauthn-updater.service`.
 
 ## Acknowledgements
 
-The [WebAuthn Javascript serialization helper](static/webauthn-json.browser-global.extended.js) is taken from the [@github/webauthn-json project](https://github.com/github/webauthn-json).
+The [WebAuthn Javascript serialization helper](static/webauthn-json.browser-global.extended.js) is taken from the [@github/webauthn-json project](https://github.com/All-Your-Locks-Are-Belong-To-Us/webauthn-json/tree/feature/credential-protection-policy).

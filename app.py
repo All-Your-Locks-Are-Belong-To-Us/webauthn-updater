@@ -8,10 +8,18 @@ from flask_oidc import OpenIDConnect
 from patched_keycloak_admin import PatchedKeycloakAdmin
 from webauthn import generate_registration_options, generate_authentication_options, options_to_json, \
     verify_registration_response, verify_authentication_response
-from webauthn.helpers.structs import \
-    AuthenticationExtensionsLargeBlobInputs, \
-    LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement, PublicKeyCredentialDescriptor, \
-    RegistrationCredential, AuthenticationCredential, AttestationConveyancePreference
+from webauthn.helpers.structs import (
+    AuthenticationExtensionsLargeBlobInputs,
+    LargeBlobSupport,
+    AuthenticatorSelectionCriteria,
+    ResidentKeyRequirement,
+    PublicKeyCredentialDescriptor,
+    RegistrationCredential,
+    AuthenticationCredential,
+    AttestationConveyancePreference,
+    CredentialProtectionPolicy
+)
+
 from py_webauthn.webauthn import base64url_to_bytes
 from py_webauthn.webauthn.helpers import bytes_to_base64url
 
@@ -66,6 +74,7 @@ def register():
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
             support=LargeBlobSupport.REQUIRED,
         ),
+        credential_protection_policy=CredentialProtectionPolicy.USER_VERIFICATION_OPTIONAL,
         authenticator_selection=AuthenticatorSelectionCriteria(
             resident_key=ResidentKeyRequirement.REQUIRED
         ),
