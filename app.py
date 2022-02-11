@@ -1,8 +1,10 @@
+import hashlib
 import json
 import os
 from base64 import b64encode
 import re
 
+import cbor2
 from ecdsa import SigningKey
 from flask import Flask, render_template, request, redirect, session
 from flask_oidc import OpenIDConnect
@@ -46,12 +48,10 @@ def get_credentials_for_user(user_id):
 
 
 def get_signed_access_rights():
-    access_rights = oidc.user_getfield("access_rights")
-    return json.dumps({
-        "access_rights": access_rights,
-        "credentialPublicKey": session["selected_credential_publicKey"],
-        "signature": bytes_to_base64url(signing_key.sign(bytes(f"{access_rights}{session['selected_credential_publicKey']}", "utf-8"))) if signing_key is not None else ""
-    }).encode("utf-8")
+    access_rights = str(oidc.user_getfield("access_rights")).encode('utf-8')
+    public_key = base64url_to_bytes(session["selected_credential_publicKey"])
+    signature = signing_key.sign(access_rights + public_key, hashfunc=hashlib.sha256) if signing_key is not None else bytes()
+    return cbor2.dumps([access_rights, public_key, signature])
 
 
 @app.route('/')
@@ -171,7 +171,7 @@ def write_blob():
     credentials = get_credentials_for_user(oidc.user_getfield('sub'))
     if len(credentials) == 0:
         return 'User has not registered a credential', 400
-    if (selected_credential_id := session["selected_credential_id"]) is None:
+    if (selected_credential_id := session["selected_credential_id"]) is None or session["selected_credential_publicKey"] is None:
         return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(

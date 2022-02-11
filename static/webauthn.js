@@ -65,7 +65,7 @@ function readLargeBlob() {
         .then((getAssertionResponse) => {
             console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
             document.getElementById('largeBlobData').innerText =
-                base64DecodeToString(getAssertionResponse.clientExtensionResults.largeBlob.blob);
+                base64Decode(getAssertionResponse.clientExtensionResults.largeBlob.blob).reduce(function(memo, i) {return memo + ('0' + i.toString(16)).slice(-2)}, '');;
         })
         .catch(requestFailure)
 }

@@ -10,6 +10,7 @@ Flask-OIDC = "*"
 webauthn = {path = "./py_webauthn"}
 python-keycloak = "*"
 ecdsa = "*"
+cbor2 = "*"
 
 [dev-packages]
 
