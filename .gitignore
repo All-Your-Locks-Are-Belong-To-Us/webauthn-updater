@@ -1,2 +1,6 @@
 .idea/
 client_secrets.json
+*.pem
+build/
+dist/
+*.egg-info/
