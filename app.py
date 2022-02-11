@@ -5,7 +5,9 @@ from base64 import b64encode
 import re
 
 import cbor2
-from ecdsa import SigningKey
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
 from flask import Flask, render_template, request, redirect, session
 from flask_oidc import OpenIDConnect
 from patched_keycloak_admin import PatchedKeycloakAdmin
@@ -28,10 +30,12 @@ app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
+
 signing_key = None
 if "WAU_SIGNING_KEY_PATH" in os.environ:
-    with open(os.environ["WAU_SIGNING_KEY_PATH"], "r") as f:
-        signing_key = SigningKey.from_pem(f.read())
+    with open(os.environ["WAU_SIGNING_KEY_PATH"], "rb") as f:
+        signing_key = serialization.load_pem_private_key(f.read(), None)
+
 keycloak_admin = PatchedKeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/",
                                       client_id=os.environ['WAU_KEYCLOAK_CLIENT_ID'],
                                       client_secret_key=os.environ['WAU_KEYCLOAK_CLIENT_SECRET'],
@@ -53,7 +57,7 @@ def get_credentials_for_user(user_id):
 def get_signed_access_rights():
     access_rights = str(oidc.user_getfield("access_rights")).encode('utf-8')
     public_key = base64url_to_bytes(session["selected_credential_publicKey"])
-    signature = signing_key.sign(access_rights + public_key, hashfunc=hashlib.sha256) if signing_key is not None else bytes()
+    signature = signing_key.sign(access_rights + public_key, ec.ECDSA(hashes.SHA256())) if signing_key is not None else bytes()
     return cbor2.dumps([access_rights, public_key, signature])
 
 
