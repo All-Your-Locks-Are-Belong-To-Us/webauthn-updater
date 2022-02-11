@@ -28,7 +28,10 @@ app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
-signing_key = SigningKey.from_string(base64url_to_bytes(os.environ["WAU_SIGNING_KEY"])) if "WAU_SIGNING_KEY" in os.environ else None
+signing_key = None
+if "WAU_SIGNING_KEY_PATH" in os.environ:
+    with open(os.environ["WAU_SIGNING_KEY_PATH"], "r") as f:
+        signing_key = SigningKey.from_pem(f.read())
 keycloak_admin = PatchedKeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/",
                                       client_id=os.environ['WAU_KEYCLOAK_CLIENT_ID'],
                                       client_secret_key=os.environ['WAU_KEYCLOAK_CLIENT_SECRET'],
