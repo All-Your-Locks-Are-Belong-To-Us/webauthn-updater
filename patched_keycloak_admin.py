@@ -1,7 +1,18 @@
 from keycloak import KeycloakAdmin, KeycloakOpenID, ConnectionManager
+from keycloak.exceptions import KeycloakGetError
 
 
 class PatchedKeycloakAdmin(KeycloakAdmin):
+    def refresh_token(self):
+        try:
+            super().refresh_token()
+        except KeycloakGetError as e:
+            if e.response_code == 400 and b'No refresh token' in e.response_body:
+                self.get_token()
+                self.connection.add_param_headers('Authorization', 'Bearer ' + self.token.get('access_token'))
+            else:
+                raise
+
     def get_token(self):
         # The original library wanted to always use the master realm here in case a client_secret_key is set which
         # would not work for clients wanting to perform some action outside the master realm.
