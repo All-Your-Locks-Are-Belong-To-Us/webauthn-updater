@@ -6,22 +6,15 @@ import re
 from flask import Flask, render_template, request, redirect, session
 from flask_oidc import OpenIDConnect
 from patched_keycloak_admin import PatchedKeycloakAdmin
-from webauthn import generate_registration_options, generate_authentication_options, options_to_json, \
-    verify_registration_response, verify_authentication_response
-from webauthn.helpers.structs import (
-    AuthenticationExtensionsLargeBlobInputs,
-    LargeBlobSupport,
-    AuthenticatorSelectionCriteria,
-    ResidentKeyRequirement,
-    PublicKeyCredentialDescriptor,
-    RegistrationCredential,
-    AuthenticationCredential,
-    AttestationConveyancePreference,
-    CredentialProtectionPolicy
+from webauthn import (
+    generate_registration_options, generate_authentication_options, options_to_json,
+    verify_registration_response, verify_authentication_response, base64url_to_bytes, bytes_to_base64url
 )
-
-from py_webauthn.webauthn import base64url_to_bytes
-from py_webauthn.webauthn.helpers import bytes_to_base64url
+from webauthn.helpers.structs import (
+    AuthenticationExtensionsLargeBlobInputs, LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement,
+    PublicKeyCredentialDescriptor, RegistrationCredential, AuthenticationCredential, AttestationConveyancePreference,
+    UserVerificationRequirement, CredentialProtectionPolicy
+)
 
 HOST_URL = os.environ["WAU_HOST_URL"]
 RP_ID = re.search(r'https?://([^:]+)', HOST_URL).group(1)
@@ -76,7 +69,8 @@ def register():
         ),
         credential_protection_policy=CredentialProtectionPolicy.USER_VERIFICATION_OPTIONAL,
         authenticator_selection=AuthenticatorSelectionCriteria(
-            resident_key=ResidentKeyRequirement.REQUIRED
+            resident_key=ResidentKeyRequirement.REQUIRED,
+            user_verification=UserVerificationRequirement.DISCOURAGED
         ),
         attestation=AttestationConveyancePreference.DIRECT,
     )

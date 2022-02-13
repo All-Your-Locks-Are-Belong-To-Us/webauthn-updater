@@ -6,6 +6,6 @@ from .authentication.generate_authentication_options import (
 from .authentication.verify_authentication_response import (
     verify_authentication_response,
 )
-from .helpers import base64url_to_bytes, options_to_json
+from .helpers import base64url_to_bytes, bytes_to_base64url, options_to_json
 
 __version__ = "1.2.1"
