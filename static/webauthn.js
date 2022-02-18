@@ -65,7 +65,7 @@ function readLargeBlob() {
         .then((getAssertionResponse) => {
             console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
             document.getElementById('largeBlobData').innerText =
-                base64Decode(getAssertionResponse.clientExtensionResults.largeBlob.blob).reduce(function(memo, i) {return memo + ('0' + i.toString(16)).slice(-2)}, '');;
+                hexStringEncode(base64Decode(getAssertionResponse.clientExtensionResults.largeBlob.blob));
         })
         .catch(requestFailure)
 }
@@ -79,8 +79,8 @@ function base64Decode(base64String) {
     )
 }
 
-function base64DecodeToString(base64String) {
-    return new TextDecoder().decode(base64Decode(base64String));
+function hexStringEncode(byteArray) {
+    return byteArray.reduce(function(memo, i) {return memo + ('0' + i.toString(16)).slice(-2)}, '');
 }
 
 function requestFailure(error) {
