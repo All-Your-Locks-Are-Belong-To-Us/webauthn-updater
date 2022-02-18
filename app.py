@@ -1,8 +1,13 @@
+import hashlib
 import json
 import os
 from base64 import b64encode
 import re
 
+import cbor2
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
 from flask import Flask, render_template, request, redirect, session
 from flask_oidc import OpenIDConnect
 from patched_keycloak_admin import PatchedKeycloakAdmin
@@ -25,6 +30,12 @@ app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
 app.config["SECRET_KEY"] = "adfsdfsdfsdfsdf"
 app.config["OVERWRITE_REDIRECT_URI"] = f"{HOST_URL}/oidc_callback"
 oidc = OpenIDConnect(app)
+
+signing_key = None
+if "WAU_SIGNING_KEY_PATH" in os.environ:
+    with open(os.environ["WAU_SIGNING_KEY_PATH"], "rb") as f:
+        signing_key = serialization.load_pem_private_key(f.read(), None)
+
 keycloak_admin = PatchedKeycloakAdmin(server_url=f"https://{os.environ['WAU_KEYCLOAK_HOST_NAME']}/auth/",
                                       client_id=os.environ['WAU_KEYCLOAK_CLIENT_ID'],
                                       client_secret_key=os.environ['WAU_KEYCLOAK_CLIENT_SECRET'],
@@ -41,6 +52,13 @@ def parse_credential_data(credential):
 def get_credentials_for_user(user_id):
     credentials = json.loads(keycloak_admin.raw_get(f"admin/realms/hotsir/users/{user_id}/credentials").content)
     return list(map(parse_credential_data, filter(lambda credential: credential['type'] == 'webauthn', credentials)))
+
+
+def get_signed_access_rights():
+    access_rights = str(oidc.user_getfield("access_rights")).encode('utf-8')
+    public_key = base64url_to_bytes(session["selected_credential_publicKey"])
+    signature = signing_key.sign(access_rights + public_key, ec.ECDSA(hashes.SHA256())) if signing_key is not None else bytes()
+    return cbor2.dumps([access_rights, public_key, signature])
 
 
 @app.route('/')
@@ -149,6 +167,7 @@ def authentication_response():
         credential_current_sign_count=0
     )
     session["selected_credential_id"] = verified_authentication.credential_id
+    session["selected_credential_publicKey"] = stored_credential["credentialData"]["credentialPublicKey"]
 
     return b64encode(verified_authentication.credential_id)
 
@@ -159,14 +178,14 @@ def write_blob():
     credentials = get_credentials_for_user(oidc.user_getfield('sub'))
     if len(credentials) == 0:
         return 'User has not registered a credential', 400
-    if (selected_credential_id := session["selected_credential_id"]) is None:
+    if (selected_credential_id := session["selected_credential_id"]) is None or session["selected_credential_publicKey"] is None:
         return "User has not selected a credential to write to", 400
 
     authentication_options = generate_authentication_options(
         rp_id=RP_ID,
         allow_credentials=[PublicKeyCredentialDescriptor(id=selected_credential_id)],
         large_blob_extension=AuthenticationExtensionsLargeBlobInputs(
-            write=f'{oidc.user_getfield("access_rights")}'.encode('UTF-8')
+            write=get_signed_access_rights()
         )
     )
 

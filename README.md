@@ -17,8 +17,12 @@ For the app to work properly, some environment variables need to be set:
 |WAU_KEYCLOAK_HOST_NAME|*unset*|`kc.felixgohla.de`|`kc.felixgohla.de`|
 |WAU_KEYCLOAK_CLIENT_ID|*unset*|`webauthn-updater`|`deployed-webauthn-updater`|
 |WAU_KEYCLOAK_CLIENT_SECRET|*unset*|*retrieve from Keycloak*|*retrieve from Keycloak*|
+|WAU_SIGNING_KEY_PATH|*unset*|*not required*|path to PEM file of the ECDSA signing key|
 
 Generate the OIDC config file using the environment variables by running `envsubst < client_secrets.tmpl.json > client_secrets.json`
+
+Generate the signing key by running `openssl ecparam -name prime192v1 -genkey -out sk.pem`
+You can export the verifying key for the locks by running `openssl ec -in sk.pem -pubout -out vk.pem`
 
 ### Running in current shell session
 

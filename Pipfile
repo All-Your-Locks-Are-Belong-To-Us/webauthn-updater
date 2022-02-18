@@ -9,6 +9,8 @@ pyopenssl = "*"
 Flask-OIDC = "*"
 webauthn = {path = "./py_webauthn"}
 python-keycloak = "*"
+cbor2 = "*"
+cryptography = "*"
 
 [dev-packages]
 
