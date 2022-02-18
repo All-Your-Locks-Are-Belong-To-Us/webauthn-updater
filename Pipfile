@@ -6,11 +6,13 @@ name = "pypi"
 [packages]
 flask = "*"
 pyopenssl = "*"
-Flask-OIDC = "*"
 webauthn = {path = "./py_webauthn"}
 python-keycloak = "*"
 cbor2 = "*"
 cryptography = "*"
+Flask-OIDC = "*"
+# Pin itsdangerous library to version 2.0.X as it is a transitive dependency of flask-OIDC that breaks with 2.1.X
+itsdangerous = "~=2.0.1"
 
 [dev-packages]
 
