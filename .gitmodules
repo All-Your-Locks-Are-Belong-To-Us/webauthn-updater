@@ -1,3 +1,6 @@
 [submodule "py_webauthn"]
 	path = py_webauthn
 	url = https://github.com/All-Your-Locks-Are-Belong-To-Us/py_webauthn.git
+[submodule "python-keycloak"]
+	path = python-keycloak
+	url = https://github.com/All-Your-Locks-Are-Belong-To-Us/python-keycloak.git

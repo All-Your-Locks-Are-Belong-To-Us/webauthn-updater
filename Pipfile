@@ -7,7 +7,7 @@ name = "pypi"
 flask = "*"
 pyopenssl = "*"
 webauthn = {path = "./py_webauthn"}
-python-keycloak = "*"
+python-keycloak = {path = "./python-keycloak"}
 cbor2 = "*"
 cryptography = "*"
 Flask-OIDC = "*"
