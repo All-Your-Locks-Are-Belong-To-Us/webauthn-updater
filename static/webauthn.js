@@ -35,7 +35,7 @@ function identifyCredential() {
         })
         .then(response => response.text())
         .then(credential_id => {
-            document.getElementById('identified_credential').innerText = credential_id;
+            document.getElementById('identified_credential').value = credential_id;
         })
         .catch(requestFailure)
 }
@@ -64,7 +64,7 @@ function readLargeBlob() {
         })
         .then((getAssertionResponse) => {
             console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
-            document.getElementById('largeBlobData').innerText =
+            document.getElementById('largeBlobData').value =
                 hexStringEncode(base64Decode(getAssertionResponse.clientExtensionResults.largeBlob.blob));
         })
         .catch(requestFailure)
