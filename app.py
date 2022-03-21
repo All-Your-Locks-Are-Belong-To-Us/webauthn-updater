@@ -64,7 +64,12 @@ def get_signed_access_rights():
 @app.route('/')
 @oidc.require_login
 def index():
-    return render_template('index.html', username=oidc.user_getfield("preferred_username"))
+    return render_template(
+        'index.html',
+        username=oidc.user_getfield("preferred_username"),
+        given_name=oidc.user_getfield("given_name"),
+        family_name=oidc.user_getfield("family_name"),
+    )
 
 
 @app.route('/logout')
