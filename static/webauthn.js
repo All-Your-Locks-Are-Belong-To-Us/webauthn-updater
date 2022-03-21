@@ -50,6 +50,7 @@ function writeLargeBlob() {
         })
         .then((getAssertionResponse) => {
             console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
+            openToastSuccess()
         })
         .catch(requestFailure)
 }
@@ -86,4 +87,16 @@ function hexStringEncode(byteArray) {
 function requestFailure(error) {
     alert('Operation failed, see browser console!')
     console.log('FAIL', error)
+}
+
+function openToastSuccess() {
+    var toastSuccess = document.getElementById('toast-success')
+    toastSuccess.classList.remove('invisible')
+    toastSuccess.classList.add('bottom-5')
+}
+
+function closeToastSuccess() {
+    var toastSuccess = document.getElementById('toast-success')
+    toastSuccess.classList.add("invisible")
+    toastSuccess.classList.remove('bottom-5')
 }
