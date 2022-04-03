@@ -8,7 +8,7 @@ This project provides a demonstration of writing data to a FIDO authenticator us
 
 This project assumes Python 3.9. Make sure to have Pip and Pipenv installed.
 
-The dependencies of the app can be installed using `pipenv install`. (Note: the `webauthn` packages needed to be extended to support the largeBlob and credProtect extension. Therefore, the package is installed automatically from the local `py_webauthn` directory).
+The dependencies of the app can be installed using `pipenv install`. (Note: the `py_webauthn` package needed to be extended to support the largeBlob and credProtect extension. Therefore, the package is installed from the `py_webauthn` submodule pointing to our own extension of the project. Also, at the point of writing, there is a small bug breaking the `python-keycloak` package for our use case, so we use our own fixed version for that one as well.)
 
 For the app to work properly, some environment variables need to be set:
 
