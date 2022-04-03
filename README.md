@@ -8,7 +8,7 @@ This project provides a demonstration of writing data to a FIDO authenticator us
 
 This project assumes Python 3.9. Make sure to have Pip and Pipenv installed.
 
-The dependencies of the app can be installed using `pipenv install`. (Note: the `webauthn` packages needed to be extended to support the largeBlob and credProtect extension. Therefore, the package is installed automatically from the local `py_webauthn` directory).
+The dependencies of the app can be installed using `pipenv install`. (Note: the `py_webauthn` package needed to be extended to support the largeBlob and credProtect extension. Therefore, the package is installed from the `py_webauthn` submodule pointing to our own extension of the project. Also, at the point of writing, there is a small bug breaking the `python-keycloak` package for our use case, so we use our own fixed version for that one as well.)
 
 For the app to work properly, some environment variables need to be set:
 
@@ -41,12 +41,16 @@ As the app requires an environment variable to be set, run `systemctl edit webau
 ```shell
 [Service]
 Environment="WAU_HOST_URL=<your url value here>"
+Environment="WAU_KEYCLOAK_HOST_NAME=<your hostname here>"
 Environment="WAU_KEYCLOAK_CLIENT_ID=<your client id here>"
 Environment="WAU_KEYCLOAK_CLIENT_SECRET=<your secret here>"
+Environment="WAU_SIGNING_KEY_PATH=<your absolute path here>"
 ```
 
 Finally, start the service with `systemctl start webauthn-updater.service`.
 
 ## Acknowledgements
 
-The [WebAuthn Javascript serialization helper](static/webauthn-json.browser-global.extended.js) is taken from the [@github/webauthn-json project](https://github.com/All-Your-Locks-Are-Belong-To-Us/webauthn-json/tree/feature/credential-protection-policy).
+The [WebAuthn Javascript serialization helper](static/webauthn-json.browser-global.extended.js) is taken from [our miniscule extension of the @github/webauthn-json project](https://github.com/All-Your-Locks-Are-Belong-To-Us/webauthn-json/tree/feature/credential-protection-policy). The license of the project can be found [here](https://github.com/github/webauthn-json/blob/main/LICENSE.md).
+
+Additionally, this project makes some small adjustments to the [py-webauthn](https://github.com/duo-labs/py_webauthn) and [python-keycloak](https://github.com/marcospereirampj/python-keycloak) projects. Please find the licenses of those projects in the respective repositories.
