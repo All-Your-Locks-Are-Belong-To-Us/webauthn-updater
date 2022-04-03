@@ -51,4 +51,6 @@ Finally, start the service with `systemctl start webauthn-updater.service`.
 
 ## Acknowledgements
 
-The [WebAuthn Javascript serialization helper](static/webauthn-json.browser-global.extended.js) is taken from the [our miniscule extension of the @github/webauthn-json project](https://github.com/All-Your-Locks-Are-Belong-To-Us/webauthn-json/tree/feature/credential-protection-policy).
+The [WebAuthn Javascript serialization helper](static/webauthn-json.browser-global.extended.js) is taken from [our miniscule extension of the @github/webauthn-json project](https://github.com/All-Your-Locks-Are-Belong-To-Us/webauthn-json/tree/feature/credential-protection-policy). The license of the project can be found [here](https://github.com/github/webauthn-json/blob/main/LICENSE.md).
+
+Additionally, this project makes some small adjustments to the [py-webauthn](https://github.com/duo-labs/py_webauthn) and [python-keycloak](https://github.com/marcospereirampj/python-keycloak) projects. Please find the licenses of those projects in the respective repositories.
