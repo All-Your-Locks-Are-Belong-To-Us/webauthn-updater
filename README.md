@@ -41,8 +41,10 @@ As the app requires an environment variable to be set, run `systemctl edit webau
 ```shell
 [Service]
 Environment="WAU_HOST_URL=<your url value here>"
+Environment="WAU_KEYCLOAK_HOST_NAME=<your hostname here>"
 Environment="WAU_KEYCLOAK_CLIENT_ID=<your client id here>"
 Environment="WAU_KEYCLOAK_CLIENT_SECRET=<your secret here>"
+Environment="WAU_SIGNING_KEY_PATH=<your absolute path here>"
 ```
 
 Finally, start the service with `systemctl start webauthn-updater.service`.
