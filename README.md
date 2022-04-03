@@ -2,6 +2,8 @@
 
 This project provides a demonstration of writing data to a FIDO authenticator using WebAuthn and the CTAP 2.1 largeBlob extension. The data is loaded from a Keycloak instance via OIDC.
 
+![Browser Preview](resources/browser-preview.png)
+
 ## Setup
 
 This project assumes Python 3.9. Make sure to have Pip and Pipenv installed.

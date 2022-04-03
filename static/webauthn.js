@@ -35,7 +35,7 @@ function identifyCredential() {
         })
         .then(response => response.text())
         .then(credential_id => {
-            document.getElementById('identified_credential').innerText = credential_id;
+            document.getElementById('identified_credential').value = credential_id;
         })
         .catch(requestFailure)
 }
@@ -50,6 +50,7 @@ function writeLargeBlob() {
         })
         .then((getAssertionResponse) => {
             console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
+            openToastSuccess()
         })
         .catch(requestFailure)
 }
@@ -64,7 +65,7 @@ function readLargeBlob() {
         })
         .then((getAssertionResponse) => {
             console.log('SUCCESSFULLY GOT AN ASSERTION!', getAssertionResponse)
-            document.getElementById('largeBlobData').innerText =
+            document.getElementById('largeBlobData').value =
                 hexStringEncode(base64Decode(getAssertionResponse.clientExtensionResults.largeBlob.blob));
         })
         .catch(requestFailure)
@@ -86,4 +87,16 @@ function hexStringEncode(byteArray) {
 function requestFailure(error) {
     alert('Operation failed, see browser console!')
     console.log('FAIL', error)
+}
+
+function openToastSuccess() {
+    var toastSuccess = document.getElementById('toast-success')
+    toastSuccess.classList.remove('invisible')
+    toastSuccess.classList.add('bottom-5')
+}
+
+function closeToastSuccess() {
+    var toastSuccess = document.getElementById('toast-success')
+    toastSuccess.classList.add("invisible")
+    toastSuccess.classList.remove('bottom-5')
 }
