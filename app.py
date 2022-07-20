@@ -15,6 +15,7 @@ from webauthn import (
     generate_registration_options, generate_authentication_options, options_to_json,
     verify_registration_response, verify_authentication_response, base64url_to_bytes, bytes_to_base64url
 )
+from webauthn.helpers.cose import COSEAlgorithmIdentifier
 from webauthn.helpers.structs import (
     AuthenticationExtensionsLargeBlobInputs, LargeBlobSupport, AuthenticatorSelectionCriteria, ResidentKeyRequirement,
     PublicKeyCredentialDescriptor, RegistrationCredential, AuthenticationCredential, AttestationConveyancePreference,
@@ -96,6 +97,9 @@ def register():
             user_verification=UserVerificationRequirement.DISCOURAGED
         ),
         attestation=AttestationConveyancePreference.DIRECT,
+        # This is necessary as the microcontrollers verifying the signatures
+        # do not implement all algorithms.
+        supported_pub_key_algs=[COSEAlgorithmIdentifier.EDDSA],
     )
     session["last_challenge"] = registration_options.challenge
 
