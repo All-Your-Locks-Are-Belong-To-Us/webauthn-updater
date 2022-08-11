@@ -23,7 +23,7 @@ For the app to work properly, some environment variables need to be set:
 
 Generate the OIDC config file using the environment variables by running `envsubst < client_secrets.tmpl.json > client_secrets.json`
 
-Generate the signing key by running `openssl ecparam -name prime192v1 -genkey -out sk.pem`
+Generate the signing key by running `openssl genpkey -algorithm Ed25519 -out sk.pem`
 You can export the verifying key for the locks by running `openssl ec -in sk.pem -pubout -out vk.pem`
 
 ### Running in current shell session
